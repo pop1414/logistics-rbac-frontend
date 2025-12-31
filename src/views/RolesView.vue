@@ -10,12 +10,11 @@
           style="width: 240px"
           clearable
         />
-        <el-button type="primary" @click="load()">查询</el-button>
-        <el-button @click="reset()">重置</el-button>
+        <el-button type="primary" @click="load">查询</el-button>
+        <el-button @click="reset">重置</el-button>
         <div style="flex: 1"></div>
-        <el-button type="success" @click="openCreate()">新建角色</el-button>
+        <el-button type="success" @click="openCreate">新建角色</el-button>
       </div>
-
       <el-table
         :data="page.list"
         border
@@ -27,17 +26,14 @@
         <el-table-column prop="description" label="描述" min-width="200" />
         <el-table-column label="初始化" width="110">
           <template #default="{ row }">
-            <el-tag :type="row.isInitial ? 'warning' : 'info'">
-              {{ row.isInitial ? "是" : "否" }}
-            </el-tag>
+            <el-tag :type="row.isInitial ? 'warning' : 'info'">{{
+              row.isInitial ? "是" : "否"
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" min-width="180">
-          <template #default="{ row }">
-            {{ fmtTime(row.createTime) }}
-          </template>
+          <template #default="{ row }">{{ fmtTime(row.createTime) }}</template>
         </el-table-column>
-
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button
@@ -46,7 +42,6 @@
               :disabled="row.isInitial"
               >编辑</el-button
             >
-
             <el-button
               size="small"
               type="danger"
@@ -57,49 +52,41 @@
           </template>
         </el-table-column>
       </el-table>
-
       <div style="display: flex; justify-content: flex-end; margin-top: 12px">
         <el-pagination
           background
           layout="total, sizes, prev, pager, next"
           :total="page.total"
+          :page-sizes="[10, 20, 50]"
           :page-size="page.pageSize"
           :current-page="page.pageNum"
-          :page-sizes="[5, 10, 20, 50]"
           @size-change="onSizeChange"
           @current-change="onPageChange"
         />
       </div>
     </el-card>
 
-    <!-- 新建/编辑弹窗 -->
+    <!-- 编辑/创建对话框 -->
     <el-dialog
       v-model="dlg.visible"
       :title="dlg.mode === 'create' ? '新建角色' : '编辑角色'"
-      width="520px"
+      width="500px"
     >
-      <el-form label-width="90px">
+      <el-form label-width="80px">
         <el-form-item label="角色名">
-          <el-input v-model="form.roleName" placeholder="如: dispatcher" />
+          <el-input v-model="form.roleName" placeholder="请输入角色名" />
         </el-form-item>
         <el-form-item label="描述">
           <el-input
             v-model="form.description"
+            placeholder="请输入描述"
             type="textarea"
-            :rows="3"
-            placeholder="描述可选"
           />
         </el-form-item>
-        <el-form-item v-if="dlg.mode === 'edit'" label="提示">
-          <el-text type="info"
-            >更新时必须携带 roleName（你后端校验要求）</el-text
-          >
-        </el-form-item>
       </el-form>
-
       <template #footer>
         <el-button @click="dlg.visible = false">取消</el-button>
-        <el-button type="primary" @click="submit()">保存</el-button>
+        <el-button type="primary" @click="submit">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -107,37 +94,18 @@
 
 <script setup>
 import { reactive, ref, onMounted } from "vue";
+import { listRoles, createRole, updateRole, deleteRole } from "@/api"; // 统一导入
 import { ElMessage, ElMessageBox } from "element-plus";
-import { listRoles, createRole, updateRole, deleteRole } from "../api/roles";
 
+const q = reactive({ roleName: "" });
+const page = reactive({ list: [], total: 0, pageNum: 1, pageSize: 10 });
 const loading = ref(false);
 
-const q = reactive({
-  roleName: "",
-});
+const dlg = reactive({ visible: false, mode: "create", editId: null });
+const form = reactive({ roleName: "", description: "" });
 
-const page = reactive({
-  list: [],
-  total: 0,
-  pageNum: 1,
-  pageSize: 10,
-});
-
-const dlg = reactive({
-  visible: false,
-  mode: "create", // create | edit
-  editId: null,
-});
-
-const form = reactive({
-  roleName: "",
-  description: "",
-});
-
-function fmtTime(v) {
-  if (!v) return "";
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+function fmtTime(time) {
+  return time ? new Date(time).toLocaleString() : ""; // 假设 utils/fmtTime
 }
 
 async function load() {
@@ -146,12 +114,10 @@ async function load() {
     const data = await listRoles({
       pageNum: page.pageNum,
       pageSize: page.pageSize,
-      roleName: q.roleName || "",
+      roleName: q.roleName,
     });
     page.list = data.list || [];
     page.total = data.total || 0;
-    page.pageNum = data.pageNum || page.pageNum;
-    page.pageSize = data.pageSize || page.pageSize;
   } catch (e) {
     ElMessage.error(e.message || "加载失败");
   } finally {
@@ -193,10 +159,7 @@ function openEdit(row) {
 }
 
 async function submit() {
-  if (!form.roleName || !form.roleName.trim()) {
-    ElMessage.warning("角色名不能为空");
-    return;
-  }
+  if (!form.roleName.trim()) return ElMessage.warning("角色名不能为空");
   try {
     if (dlg.mode === "create") {
       await createRole({
@@ -206,7 +169,7 @@ async function submit() {
       ElMessage.success("创建成功");
     } else {
       await updateRole(dlg.editId, {
-        roleName: form.roleName.trim(), // ✅ 更新必须带 roleName
+        roleName: form.roleName.trim(),
         description: form.description,
       });
       ElMessage.success("更新成功");

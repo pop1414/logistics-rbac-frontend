@@ -1,21 +1,65 @@
-import http from "./http";
+import request from "@/utils/request";
 
-export function listRoles(params) {
-  return http.get("/api/roles", { params });
+/**
+ * 列出角色（分页）
+ * @param {Object} params - { pageNum=1, pageSize=10, roleName? }
+ * @returns {Promise} - 角色列表
+ */
+export function listRoles(params = { pageNum: 1, pageSize: 10 }) {
+  return request({
+    url: "/api/roles",
+    method: "get",
+    params,
+  });
 }
 
-export function getRoleDetail(id) {
-  return http.get(`/api/roles/${id}`);
+/**
+ * 创建角色
+ * @param {Object} data - 角色数据
+ * @returns {Promise}
+ */
+export function createRole(data) {
+  return request({
+    url: "/api/roles",
+    method: "post",
+    data,
+  });
 }
 
-export function createRole(body) {
-  return http.post("/api/roles", body);
+/**
+ * 获取角色详情
+ * @param {number} roleId
+ * @returns {Promise}
+ */
+export function getRoleDetail(roleId) {
+  return request({
+    url: `/api/roles/${roleId}`,
+    method: "get",
+  });
 }
 
-export function updateRole(id, body) {
-  return http.put(`/api/roles/${id}`, body);
+/**
+ * 更新角色
+ * @param {number} roleId
+ * @param {Object} data
+ * @returns {Promise}
+ */
+export function updateRole(roleId, data) {
+  return request({
+    url: `/api/roles/${roleId}`,
+    method: "put",
+    data,
+  });
 }
 
-export function deleteRole(id) {
-  return http.delete(`/api/roles/${id}`);
+/**
+ * 删除角色
+ * @param {number} roleId
+ * @returns {Promise}
+ */
+export function deleteRole(roleId) {
+  return request({
+    url: `/api/roles/${roleId}`,
+    method: "delete",
+  });
 }
